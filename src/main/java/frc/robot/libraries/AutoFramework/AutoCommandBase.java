@@ -1,12 +1,12 @@
-package frc.robot.libraries;
+package frc.robot.libraries.AutoFramework;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
 import edu.wpi.first.wpilibj2.command.CommandBase;
-import frc.robot.libraries.AutoOperationMode.OperationMode;
-import frc.robot.libraries.AutoOperationMode.OperationTag;
+import frc.robot.libraries.AutoFramework.AutoOperationMode.OperationMode;
+import frc.robot.libraries.AutoFramework.AutoOperationMode.OperationTag;
 
 /**
  * This class acts as an extention to CommandBase, allowing the command
@@ -20,26 +20,9 @@ public abstract class AutoCommandBase extends CommandBase {
     protected AutoCommandScheduler parentScheduler;
     // A better immagration policy than Trump's
 
-    /**
-     * Runs the command repeatedly when its condition is true
-     */ protected static OperationMode whileTrue = new AutoOperationMode.c_WhileTrue();
-    /**
-     * Runs the command repeatedly when its condition is false
-     */ protected static OperationMode whileFalse = new AutoOperationMode.c_WhileFalse();
-    /**
-     * Runs the command once when its condition is true
-     */ protected static OperationMode onTrue = new AutoOperationMode.c_OnTrue();
-    /**
-     * Runs the command once when its condition is false
-     */ protected static OperationMode onFalse = new AutoOperationMode.c_OnFalse();
-
-    /**
-     * Disables default command operation while command is running
-     */ protected OperationTag pauseDefaultOperation = new AutoOperationMode.c_PauseDefaultCommand(this);
-    
     // Cannot be final, despite the defining function typically running in the constructor
-    public BooleanSupplier condition = null;   // Null to throw exception when improperly constructed
-    public OperationMode operationCondition = null;
+    public BooleanSupplier condition;   // Null to throw exception when improperly constructed
+    public OperationMode operationCondition = new AutoOperationMode.WhileTrue(); // Default
     public List<OperationTag> operationTagArr = new ArrayList<OperationTag>();
 
     /**
@@ -51,7 +34,7 @@ public abstract class AutoCommandBase extends CommandBase {
      * 
      * @return self for chaining
      */
-    protected AutoCommandBase declareCondition(BooleanSupplier PollCondition) {
+    public AutoCommandBase declareCondition(BooleanSupplier PollCondition) {
         condition = PollCondition;
 
         return this;
@@ -68,8 +51,27 @@ public abstract class AutoCommandBase extends CommandBase {
      * 
      * @see AutoOperationMode.OperationMode
      */
-    protected AutoCommandBase declareOperationMode(OperationMode OperationModeCondition) {
+    public AutoCommandBase declareOperationMode(OperationMode OperationModeCondition) {
         operationCondition = OperationModeCondition;
+
+        return this;
+    }
+
+    /**
+     * Declares special modefiers for the AutoCommandScheduler this command
+     * is running within. 
+     * 
+     * @param OperationTagArr Any number of OperationTag variables
+     * 
+     * @return self for chaining
+     */
+    public AutoCommandBase declareOperationTag(OperationTag... OperationTagArr) {
+
+        operationTagArr.clear();
+
+        for (OperationTag operationTag : OperationTagArr) {
+            operationTagArr.add(operationTag);
+        }
 
         return this;
     }

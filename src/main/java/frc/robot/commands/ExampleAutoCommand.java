@@ -4,8 +4,7 @@
 
 package frc.robot.commands;
 
-import edu.wpi.first.wpilibj2.command.CommandBase;
-import frc.robot.libraries.AutoCommandBase;
+import frc.robot.libraries.AutoFramework.AutoCommandBase;
 
 public class ExampleAutoCommand extends AutoCommandBase {
   /** Creates a new test. */

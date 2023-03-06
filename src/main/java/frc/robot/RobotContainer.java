@@ -4,7 +4,12 @@
 
 package frc.robot;
 
-import frc.robot.Constants.OperatorConstants;
+import frc.robot.commands.ExampleAutoCommand;
+import frc.robot.libraries.AutoFramework.AutoCommandBase;
+import frc.robot.libraries.AutoFramework.AutoCommandScheduler;
+import frc.robot.libraries.AutoFramework.InstantAutoCommand;
+import frc.robot.libraries.AutoFramework.AutoOperationMode.OnTrue;
+import frc.robot.libraries.AutoFramework.AutoOperationMode.PauseDefaultCommand;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -44,7 +49,21 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    // An example command will be run in autonomous
-    return new InstantCommand();
+
+    AutoCommandScheduler autoScheduler = new AutoCommandScheduler();
+
+    autoScheduler.setDefaultCommand(
+      new InstantAutoCommand()
+    );
+
+    autoScheduler.setCommands(
+      new InstantAutoCommand()
+        .declareCondition(
+          () -> (autoScheduler.autoTimePassed(2) && !autoScheduler.autoTimePassed(3))
+        )
+        .declareOperationTag(new PauseDefaultCommand(autoScheduler))
+    );
+
+    return autoScheduler;
   }
 }

@@ -1,8 +1,8 @@
-package frc.robot.libraries;
+package frc.robot.libraries.AutoFramework;
 
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.CommandBase;
-import frc.robot.libraries.AutoOperationMode.OperationTag;
+import frc.robot.libraries.AutoFramework.AutoOperationMode.OperationTag;
 
 /**
  * This class can function as a command, thus it can be returned by
@@ -31,12 +31,39 @@ public class AutoCommandScheduler extends CommandBase {
     public AutoCommandBase[] pollCommandArr;
 
     /**
+     * @param seconds
+     * @return true if auto time is greater than seconds
+     */
+    public boolean autoTimePassed(double seconds) {
+        return AutoTimer.get() >= seconds;
+    }
+
+    /**
+     * @param seconds
+     * @return true if defaultCommand time is greater than seconds
+     */
+    public boolean defaultTimePassed(double seconds) {
+        return DefaultCommandTimer.get() >= seconds;
+    }
+
+    /**
      * Creates a new AutoCommandScheduler, to handle a single
      * autonomous command series.
      * 
      * @param AutoCommands
      */
     public AutoCommandScheduler(AutoCommandBase... AutoCommands) {
+        setCommands(AutoCommands);
+    }
+
+    /**
+     * @param AutoCommands Any number of auto commands to add to
+     * this scheduler instance
+     * 
+     * @return self for chaining
+     */
+    public AutoCommandScheduler setCommands(AutoCommandBase... AutoCommands) {
+
         pollCommandArr = AutoCommands;
 
         // Add current instance of self to child commands
@@ -44,6 +71,8 @@ public class AutoCommandScheduler extends CommandBase {
             autoCommandBase.parentScheduler = this;
         }
         // Parents need to talk to their children!!
+
+        return this;
     }
 
     /**
@@ -69,8 +98,15 @@ public class AutoCommandScheduler extends CommandBase {
         return defaultCommandArr;
     }
 
+    // Called when the command is initially scheduled.
     @Override
-    public void execute() {
+    public void initialize() {
+        AutoTimer.start();
+        DefaultCommandTimer.start();
+    }
+
+    @Override
+    public void execute() { // Ran once by robot
 
         // Loop for 15 seconds
         while (AutoTimer.get() < 15) {
@@ -108,5 +144,12 @@ public class AutoCommandScheduler extends CommandBase {
                 defaultAutoCommandBase.schedule();
             }
         }
+    }
+
+    // Called once the command ends or is interrupted.
+    @Override
+    public void end(boolean interrupted) {
+        AutoTimer.stop();
+        DefaultCommandTimer.stop();
     }
 }

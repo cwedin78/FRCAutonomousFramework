@@ -1,4 +1,4 @@
-package frc.robot.libraries;
+package frc.robot.libraries.AutoFramework;
 
 public class AutoOperationMode {
     
@@ -23,21 +23,30 @@ public class AutoOperationMode {
 
     // Quite self explanatory
 
-    static class c_WhileTrue extends OperationMode {
+    /**
+     * Runs the command repeatedly when its condition is true
+     */
+    public static class WhileTrue extends OperationMode {
         @Override
         protected boolean TruePoll() {return true;}
         @Override
         protected boolean FalsePoll() {return false;}
     }
 
-    static class c_WhileFalse extends OperationMode {
+    /**
+     * Runs the command repeatedly when its condition is false
+     */
+    public static class WhileFalse extends OperationMode {
         @Override
         protected boolean TruePoll() {return false;}
         @Override
         protected boolean FalsePoll() {return true;}
     }
 
-    static class c_OnTrue extends OperationMode {
+    /**
+     * Runs the command once when its condition is true
+     */
+    public static class OnTrue extends OperationMode {
         boolean lock = false;
 
         @Override
@@ -52,7 +61,10 @@ public class AutoOperationMode {
         }
     }
 
-    static class c_OnFalse extends OperationMode {
+    /**
+     * Runs the command once when its condition is false
+     */
+    public static class OnFalse extends OperationMode {
         boolean lock = false;
 
         @Override
@@ -82,15 +94,23 @@ public class AutoOperationMode {
         protected abstract void FalsePoll();
     }
 
-    static class c_PauseDefaultCommand extends OperationTag {
+    /**
+     * Disables default command operation while command is running
+     */
+    public static class PauseDefaultCommand extends OperationTag {
         boolean tlock = false, flock = false;
 
-        private final AutoCommandBase thisCommandBase;
+        private final AutoCommandScheduler thisCommandScheduler;
 
         private AutoCommandBase[] pausedDefaultCommandArr;
 
-        public c_PauseDefaultCommand(AutoCommandBase self) {
-            thisCommandBase = self;
+        /**
+         * Pauses the scheduler while this command is running
+         * 
+         * @param scheduler Provided scheduler this command will effect
+         */
+        public PauseDefaultCommand(AutoCommandScheduler Scheduler) {
+            thisCommandScheduler = Scheduler;
         }
 
         @Override
@@ -101,13 +121,13 @@ public class AutoOperationMode {
             if (!tlock) { // Inline run once operation
 
                 // Grab default command set
-                pausedDefaultCommandArr = thisCommandBase.parentScheduler.getDefaultCommand();
+                pausedDefaultCommandArr = thisCommandScheduler.getDefaultCommand();
 
                 // Empty the default command set in the scheduler
-                thisCommandBase.parentScheduler.setDefaultCommand();
+                thisCommandScheduler.setDefaultCommand();
 
                 // Pause default command timer
-                thisCommandBase.parentScheduler.DefaultCommandTimer.stop();
+                thisCommandScheduler.DefaultCommandTimer.stop();
 
                 tlock = true;
             }
@@ -121,10 +141,10 @@ public class AutoOperationMode {
             if (!flock) {
 
                 // Add back default commands
-                thisCommandBase.parentScheduler.setDefaultCommand(pausedDefaultCommandArr);
+                thisCommandScheduler.setDefaultCommand(pausedDefaultCommandArr);
 
                 // Unpause default command timer
-                thisCommandBase.parentScheduler.DefaultCommandTimer.start();
+                thisCommandScheduler.DefaultCommandTimer.start();
 
                 flock = true;
             }
