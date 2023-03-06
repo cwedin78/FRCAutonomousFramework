@@ -53,9 +53,10 @@ public class RobotContainer {
     AutoCommandScheduler autoScheduler = new AutoCommandScheduler();
 
     autoScheduler.setDefaultCommand(
-      new InstantAutoCommand()
+      new ExampleAutoCommand()
     );
 
+    // Will pause ExampleAutoCommand 2 seconds after it begins for 3 seconds
     autoScheduler.setCommands(
       new InstantAutoCommand()
         .declareCondition(
