@@ -38,7 +38,12 @@ public class RecordDrive extends AutoCommandBase {
   public void execute() {
     m_ExampleSubsysten.drive(speed.getAsDouble());
 
-    m_ExampleSubsysten.macroTestMotor.recordFrame();
+    try {
+      m_ExampleSubsysten.macroTestMotor.recordFrame();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
   }
 
   // Called once the command ends or is interrupted.
@@ -46,7 +51,12 @@ public class RecordDrive extends AutoCommandBase {
   public void end(boolean interrupted) {
     m_ExampleSubsysten.drive(0);
 
-    m_ExampleSubsysten.macroTestMotor.endRecord();
+    try {
+      m_ExampleSubsysten.macroTestMotor.endRecord();
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
   }
 
   // Returns true when the command should end.
