@@ -106,7 +106,7 @@ public class AutoOperationMode {
         private final AutoCommandScheduler thisCommandScheduler;
 
         // Not null to avoid exception!
-        private AutoCommandBase pausedDefaultCommandArr = new InstantAutoCommand();
+        private AutoCommandBase pausedDefaultCommand = new InstantAutoCommand();
 
         /**
          * Pauses the scheduler while this command is running
@@ -115,7 +115,9 @@ public class AutoOperationMode {
          */
         public PauseDefaultCommand(AutoCommandScheduler Scheduler) {
             thisCommandScheduler = Scheduler;
-            pausedDefaultCommandArr = Scheduler.getDefaultCommand();
+
+            // Move current default command into the paused slot for now.
+            pausedDefaultCommand = Scheduler.getDefaultCommand();
         }
 
         @Override
@@ -126,7 +128,10 @@ public class AutoOperationMode {
             if (!tlock) { // Inline run once operation
 
                 // Grab default command set
-                pausedDefaultCommandArr = thisCommandScheduler.getDefaultCommand();
+                pausedDefaultCommand = thisCommandScheduler.getDefaultCommand();
+
+                // End the default command
+                thisCommandScheduler.getDefaultCommand().end(false);
 
                 // Empty the default command set in the scheduler
                 thisCommandScheduler.setDefaultCommand(new InstantAutoCommand());
@@ -146,7 +151,10 @@ public class AutoOperationMode {
             if (!flock) {
 
                 // Add back default commands
-                thisCommandScheduler.setDefaultCommand(pausedDefaultCommandArr);
+                thisCommandScheduler.setDefaultCommand(pausedDefaultCommand);
+
+                // Start the default command
+                pausedDefaultCommand.initialize();
 
                 // Unpause default command timer
                 thisCommandScheduler.DefaultCommandTimer.start();
