@@ -1,7 +1,13 @@
 package frc.robot.libraries.AutoFramework;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BooleanSupplier;
+
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandBase;
+import frc.robot.commands.ExampleAutoCommand;
 import frc.robot.libraries.AutoFramework.AutoOperationMode.OperationTag;
 
 /**
@@ -23,12 +29,12 @@ public class AutoCommandScheduler extends CommandBase {
     /**
      * Set of commands to periodically scheduler
      */
-    private AutoCommandBase[] defaultCommandArr;
+    private AutoCommandBase defaultCommand = new InstantAutoCommand();
 
     /**
      * Set of commands within the auto
      */
-    public AutoCommandBase[] pollCommandArr;
+    public List<AutoCommandBase> pollCommandArr = new ArrayList<AutoCommandBase>();
 
     /**
      * @param seconds
@@ -64,7 +70,10 @@ public class AutoCommandScheduler extends CommandBase {
      */
     public AutoCommandScheduler setCommands(AutoCommandBase... AutoCommands) {
 
-        pollCommandArr = AutoCommands;
+        pollCommandArr.clear();
+        for (AutoCommandBase autoCommandBase : AutoCommands) {
+            pollCommandArr.add(autoCommandBase);
+        }
 
         // Add current instance of self to child commands
         for (AutoCommandBase autoCommandBase : AutoCommands) {
@@ -81,21 +90,22 @@ public class AutoCommandScheduler extends CommandBase {
      * 
      * @see AutoOperationMode.OperationTag
      * 
-     * @param DefaultCommandArr
+     * @param autoCommandArr
      * 
      * @return self for chaining
      */
-    public AutoCommandScheduler setDefaultCommand(AutoCommandBase... DefaultCommandArr) {
-        defaultCommandArr = DefaultCommandArr;
+    public AutoCommandScheduler setDefaultCommand(AutoCommandBase autoCommandBase) {
 
+        defaultCommand = autoCommandBase;
+        
         return this;
     }
 
     /**
      * @return defaultCommandArr
      */
-    public AutoCommandBase[] getDefaultCommand() {
-        return defaultCommandArr;
+    public AutoCommandBase getDefaultCommand() {
+        return defaultCommand;
     }
 
     // Called when the command is initially scheduled.
@@ -108,18 +118,34 @@ public class AutoCommandScheduler extends CommandBase {
     @Override
     public void execute() { // Ran once by robot
 
-        // Loop for 15 seconds
+        defaultCommand.initialize();
+
         while (AutoTimer.get() < 15) {
+
+            // Loop for 15 seconds
 
             for (AutoCommandBase autoCommandBase : pollCommandArr) {
 
                 // Im building a nest to hatch my babies
                 // Im so sorry for whoever reads this code
 
-                if (autoCommandBase.condition.getAsBoolean()) {
+                boolean condition = true;
+                for (BooleanSupplier cond : autoCommandBase.condition) {
+                    if (cond.getAsBoolean() == false) {
+                        condition = false;
+                    }
+                }
+
+                if (condition) {
                     if (autoCommandBase.operationCondition.TruePoll()) {
                         // Schedule the command
-                        autoCommandBase.schedule();
+                        autoCommandBase.execute();
+                        autoCommandBase.endLock = true;
+                    } else {
+                        if (autoCommandBase.endLock) {
+                            autoCommandBase.end(false);
+                            autoCommandBase.endLock = false;
+                        }
                     }
 
                     // Run tag functions
@@ -129,7 +155,13 @@ public class AutoCommandScheduler extends CommandBase {
                 } else {
                     if (autoCommandBase.operationCondition.FalsePoll()) {
                         // Schedule the command
-                        autoCommandBase.schedule();
+                        autoCommandBase.execute();
+                        autoCommandBase.endLock = true;
+                    } else {
+                        if (autoCommandBase.endLock) {
+                            autoCommandBase.end(false);
+                            autoCommandBase.endLock = false;
+                        }
                     }
 
                     // Run tag functions
@@ -140,10 +172,10 @@ public class AutoCommandScheduler extends CommandBase {
             }
 
             // Schedule default commands
-            for (AutoCommandBase defaultAutoCommandBase : defaultCommandArr) {
-                defaultAutoCommandBase.schedule();
-            }
+            defaultCommand.execute();
         }
+
+        defaultCommand.end(false);
     }
 
     // Called once the command ends or is interrupted.

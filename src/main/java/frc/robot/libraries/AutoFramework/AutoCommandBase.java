@@ -21,7 +21,7 @@ public abstract class AutoCommandBase extends CommandBase {
     // A better immagration policy than Trump's
 
     // Cannot be final, despite the defining function typically running in the constructor
-    public BooleanSupplier condition;   // Null to throw exception when improperly constructed
+    public BooleanSupplier[] condition;   // Null to throw exception when improperly constructed
     public OperationMode operationCondition = new AutoOperationMode.WhileTrue(); // Default
     public List<OperationTag> operationTagArr = new ArrayList<OperationTag>();
 
@@ -34,7 +34,7 @@ public abstract class AutoCommandBase extends CommandBase {
      * 
      * @return self for chaining
      */
-    public AutoCommandBase declareCondition(BooleanSupplier PollCondition) {
+    public AutoCommandBase declareCondition(BooleanSupplier... PollCondition) {
         condition = PollCondition;
 
         return this;
@@ -75,4 +75,11 @@ public abstract class AutoCommandBase extends CommandBase {
 
         return this;
     }
+
+
+    
+    /**
+     * For OnFalse functionality of the end() function
+     */
+    boolean endLock = true;
 }

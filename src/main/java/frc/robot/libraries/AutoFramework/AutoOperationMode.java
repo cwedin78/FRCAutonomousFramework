@@ -1,5 +1,8 @@
 package frc.robot.libraries.AutoFramework;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class AutoOperationMode {
     
     /**
@@ -102,7 +105,8 @@ public class AutoOperationMode {
 
         private final AutoCommandScheduler thisCommandScheduler;
 
-        private AutoCommandBase[] pausedDefaultCommandArr;
+        // Not null to avoid exception!
+        private AutoCommandBase pausedDefaultCommandArr = new InstantAutoCommand();
 
         /**
          * Pauses the scheduler while this command is running
@@ -111,6 +115,7 @@ public class AutoOperationMode {
          */
         public PauseDefaultCommand(AutoCommandScheduler Scheduler) {
             thisCommandScheduler = Scheduler;
+            pausedDefaultCommandArr = Scheduler.getDefaultCommand();
         }
 
         @Override
@@ -124,7 +129,7 @@ public class AutoOperationMode {
                 pausedDefaultCommandArr = thisCommandScheduler.getDefaultCommand();
 
                 // Empty the default command set in the scheduler
-                thisCommandScheduler.setDefaultCommand();
+                thisCommandScheduler.setDefaultCommand(new InstantAutoCommand());
 
                 // Pause default command timer
                 thisCommandScheduler.DefaultCommandTimer.stop();

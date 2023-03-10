@@ -4,36 +4,42 @@
 
 package frc.robot.commands;
 
-import java.util.function.DoubleSupplier;
+import java.io.FileNotFoundException;
 
+import edu.wpi.first.wpilibj2.command.CommandBase;
 import frc.robot.libraries.AutoFramework.AutoCommandBase;
 import frc.robot.subsystems.ExampleSubsystem;
 
-public class ExampleAutoCommand extends AutoCommandBase {
-  ExampleSubsystem m_ExampleSubsysten;
-
-  DoubleSupplier speed;
-  /** Creates a new test. */
-  public ExampleAutoCommand(ExampleSubsystem exampleSubsystem, DoubleSupplier driveSpeed) {
-    m_ExampleSubsysten = exampleSubsystem;
+public class ReadMacro extends AutoCommandBase {
+  ExampleSubsystem subsystem;
+  /** Creates a new ReadMacro. */
+  public ReadMacro(ExampleSubsystem exampleSubsystem) {
+    // Use addRequirements() here to declare subsystem dependencies.
     addRequirements(exampleSubsystem);
-    speed = driveSpeed;
+    subsystem = exampleSubsystem;
   }
 
   // Called when the command is initially scheduled.
   @Override
-  public void initialize() {}
+  public void initialize() {
+    try {
+      subsystem.macroTestMotor.beginRead();
+    } catch (FileNotFoundException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+  }
 
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    m_ExampleSubsysten.drive(speed.getAsDouble());
+    subsystem.macroTestMotor.readFrame();
   }
 
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
-    m_ExampleSubsysten.drive(0);
+    subsystem.macroTestMotor.endRead();
   }
 
   // Returns true when the command should end.

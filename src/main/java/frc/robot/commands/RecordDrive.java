@@ -4,17 +4,18 @@
 
 package frc.robot.commands;
 
+import java.io.IOException;
 import java.util.function.DoubleSupplier;
 
 import frc.robot.libraries.AutoFramework.AutoCommandBase;
 import frc.robot.subsystems.ExampleSubsystem;
 
-public class ExampleAutoCommand extends AutoCommandBase {
+public class RecordDrive extends AutoCommandBase {
   ExampleSubsystem m_ExampleSubsysten;
 
   DoubleSupplier speed;
   /** Creates a new test. */
-  public ExampleAutoCommand(ExampleSubsystem exampleSubsystem, DoubleSupplier driveSpeed) {
+  public RecordDrive(ExampleSubsystem exampleSubsystem, DoubleSupplier driveSpeed) {
     m_ExampleSubsysten = exampleSubsystem;
     addRequirements(exampleSubsystem);
     speed = driveSpeed;
@@ -22,18 +23,30 @@ public class ExampleAutoCommand extends AutoCommandBase {
 
   // Called when the command is initially scheduled.
   @Override
-  public void initialize() {}
+  public void initialize() {
+    try {
+      m_ExampleSubsysten.macroTestMotor.beginRecord();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    
+  }
 
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
     m_ExampleSubsysten.drive(speed.getAsDouble());
+
+    m_ExampleSubsysten.macroTestMotor.recordFrame();
   }
 
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
     m_ExampleSubsysten.drive(0);
+
+    m_ExampleSubsysten.macroTestMotor.endRecord();
   }
 
   // Returns true when the command should end.

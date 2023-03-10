@@ -5,14 +5,19 @@
 package frc.robot;
 
 import frc.robot.commands.ExampleAutoCommand;
+import frc.robot.commands.ReadMacro;
+import frc.robot.commands.RecordDrive;
 import frc.robot.libraries.AutoFramework.AutoCommandBase;
 import frc.robot.libraries.AutoFramework.AutoCommandScheduler;
 import frc.robot.libraries.AutoFramework.InstantAutoCommand;
 import frc.robot.libraries.AutoFramework.AutoOperationMode.OnTrue;
 import frc.robot.libraries.AutoFramework.AutoOperationMode.PauseDefaultCommand;
+import frc.robot.subsystems.ExampleSubsystem;
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 /**
@@ -24,10 +29,18 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 public class RobotContainer {
   // The robot's subsystems and commands are defined here...
 
+  ExampleSubsystem exampleSubsystem = new ExampleSubsystem();
+
+  Joystick driver = new Joystick(0);
+
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     // Configure the trigger bindings
     configureBindings();
+
+    exampleSubsystem.setDefaultCommand(
+      new ExampleAutoCommand(exampleSubsystem, () -> driver.getY())
+    );
   }
 
   /**
@@ -40,7 +53,9 @@ public class RobotContainer {
    * joysticks}.
    */
   private void configureBindings() {
+    JoystickButton d1 = new JoystickButton(driver, 1);
 
+    d1.whileTrue(new RecordDrive(exampleSubsystem, () -> driver.getY()));
   }
 
   /**
@@ -53,17 +68,23 @@ public class RobotContainer {
     AutoCommandScheduler autoScheduler = new AutoCommandScheduler();
 
     autoScheduler.setDefaultCommand(
-      new ExampleAutoCommand()
+      new ReadMacro(exampleSubsystem)
     );
 
-    // Will pause ExampleAutoCommand 2 seconds after it begins for 3 seconds
-    autoScheduler.setCommands(
-      new InstantAutoCommand()
-        .declareCondition(
-          () -> (autoScheduler.autoTimePassed(2) && !autoScheduler.autoTimePassed(3))
-        )
-        .declareOperationTag(new PauseDefaultCommand(autoScheduler))
-    );
+    // // Will pause ExampleAutoCommand 2 seconds after it begins for 3 seconds
+    // autoScheduler.setCommands(
+    //   new ExampleAutoCommand(exampleSubsystem, () -> 1)
+    //     .declareCondition(
+    //       () -> (autoScheduler.autoTimePassed(2) && !autoScheduler.autoTimePassed(3))
+    //     )
+    //     .declareOperationTag(new PauseDefaultCommand(autoScheduler)),
+
+    //   new ExampleAutoCommand(exampleSubsystem, () -> 1)
+    //     .declareCondition(
+    //       () -> (autoScheduler.autoTimePassed(4) && !autoScheduler.autoTimePassed(5))
+    //     )
+    //     .declareOperationTag(new PauseDefaultCommand(autoScheduler))
+    // );
 
     return autoScheduler;
   }

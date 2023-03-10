@@ -1,5 +1,7 @@
 package frc.robot.libraries;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -8,189 +10,142 @@ import java.util.Scanner;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
-/**
- * A POSITIONAL macro system.
- * Theoreritcally more relaible than
- * an input based macro system.
- */
 public class MacroCANSparkMax {
-    /**
-     * {@link CANSparkMax} declared by initalization
-     */
-    public final CANSparkMax motor;
+
+    public final String dataPath = Filesystem.getDeployDirectory().getPath();
+
+    public final String name;
+
+    public final File mapFile;
+
+    private FileWriter writer;
+    private Scanner scanner;
+
+    final RelativeEncoder encoder;
+    final CANSparkMax motor;
+
+    final Timer RecordTimer = new Timer();
+    final Timer ReadTimer = new Timer();
+
+    double lastReadTimer = 0;
+
+    PIDController driveController = new PIDController(0.1, 0, 0, 0);
 
     /**
-     * = {@link edu.wpi.first.wpilibj.Filesystem}.getDeployDirectory().getPath() + "\\Name";
-     */ public final String filePath;
-    
-    FileWriter writer;
-
-    Scanner scanner;
-
-    Timer recordTimer = new Timer(), readTimer = new Timer();
-
-    double preveousReadTime = 0;
-
-    /**
-     * Default PID values
-     */
-    final double kP = 0.1, kI = 0, kD = 0;
-
-    final PIDController pidDriver;
-    
-    /**
-     * Stores a single CANSparkMax to support macro
-     * reading and writing
+     * Creates an instance of a class extending the function of a 
+     * {@link com.revrobotics.CANSparkMax} to allow for positional macro use
      * 
-     * @param Motor CANSparkMax instance to modify
-     * @param Name Identification name for file system, if a file by the
-     * same name already exists, it will be overwritten
+     * @param Motor CANSparkMax to modify
+     * @param Id identifier for file system
      * 
-     * @throws IOException if FileWriter is unable to be created
+     * @throws IOException when FileWriter fails to initialize
      */
-    public MacroCANSparkMax(CANSparkMax Motor, String Name) {
-        filePath = Filesystem.getDeployDirectory().getPath() + "\\" + Name;
-
+    public MacroCANSparkMax(CANSparkMax Motor, String Id) throws IOException {
+        encoder = Motor.getEncoder();
         motor = Motor;
+        name = Id;
 
-        pidDriver = new PIDController(kP, kI, kD, 0);
+        mapFile = new File( dataPath + "\\" + name + ".txt");
     }
 
     /**
-     * Sets the P I and D values of the
-     * integrated {@link PIDController}
-     * @param P Proportion of Error
-     * @param I Integral of Error
-     * @param D Derivative of Error
-     * 
-     * @return self for chaining
+     * Starts the record timer and institates the writer.
+     * Also clears the active file to begin writing
      */
-    public MacroCANSparkMax setPID(double P, double I, double D) {
-        pidDriver.kP = P;
-        pidDriver.kI = I;
-        pidDriver.kD = D;
+    public void beginRecord() throws IOException {
 
-        return this;
-    }
+        // encoder.setPosition(0); // fuck you batman
 
-    /**
-     * Initializes file writer
-     * 
-     * @throws IOException if writer fails to initalize
-     * 
-     * @return self for chaining
-     */
-    public MacroCANSparkMax beginRecord() throws IOException {
+        RecordTimer.restart();
+        RecordTimer.start();
+
+        writer = new FileWriter(mapFile, true);
 
         // Clear the file
-        FileWriter fwOb = new FileWriter(filePath, false); 
-        PrintWriter pwOb = new PrintWriter(fwOb, false);
-        pwOb.flush();
-        pwOb.close();
-        fwOb.close();
-
-        // Create a temporary FileWriter
-        writer = new FileWriter(filePath, true);
-
-        recordTimer.start();
-
-        return this;
+        PrintWriter writer = new PrintWriter(mapFile);
+        writer.print(""); // Write empty
+        writer.close();
     }
 
     /**
-     * Records a single frame on a new line within the active file
+     * Record a single frame, write the time, and motor position,
+     * to the macro file
      * 
-     * @throws IOException if writer is unable to write
-     * 
-     * @return self for chaining
+     * @param TimeSeconds Current macro time
      */
-    public MacroCANSparkMax recordFrame() throws IOException {
+    public void recordFrame() {
 
-        // if the writer does not exist, attempt to create it
-        if (writer.equals(null)) {
-            beginRecord(); 
+        String toWrite = RecordTimer.get() + "," + encoder.getPosition() + "\n";
+
+        try {
+            writer.append(toWrite);
+        } catch (IOException e) {
+            DriverStation.reportWarning("Failed to write macro line", e.getStackTrace());
+        }
+    }
+
+    /**
+     * Closes the file writer
+     */
+    public void endRecord() {
+        try {
+            writer.close();
+        } catch (IOException e) {
+            DriverStation.reportWarning("Failed to close writer", e.getStackTrace());
         }
 
-        // Write the time and position into the file, and end it with a new line
-        writer.write(recordTimer.get() + "," + motor.getEncoder().getPosition() + "\n");
+        // Reset the timer
+        RecordTimer.stop();
+        RecordTimer.reset();
 
-        return this;
+        // encoder.setPosition(0); // fuck you batman
     }
 
     /**
-     * Closes file writer and ends record timer
      * 
-     * @throws IOException if writer is unable to close
-     * 
-     * @return self for chaining
+     * @throws FileNotFoundException
      */
-    public MacroCANSparkMax endRecord() throws IOException {
-        writer.close(); 
+    public void beginRead() throws FileNotFoundException {
+        ReadTimer.restart();
+        ReadTimer.start();
 
-        recordTimer.stop();
-        recordTimer.reset();
+        scanner = new Scanner(mapFile);
+        scanner.useDelimiter(",|\\n");
 
-        return this;
+        if (scanner.hasNext()) {
+            SmartDashboard.putString("scanner", "" + scanner.next());
+            //lastReadTimer = scanner.nextDouble();
+        }
     }
-
+    
     /**
-     * Creates scanner object and starts reading timer
      * 
-     * @return self for chaining
      */
-    public MacroCANSparkMax beginRead() {
-        scanner = new Scanner(filePath);
-        
-        readTimer.start();
+    public void readFrame() {
+        driveController.setInput(encoder.getPosition());
 
-        return this;
-    }
-
-    /**
-     * Checks if current read time has passed time of current line.
-     * If so, position is inputted as the goal to the PID tuner, and
-     * motor is ran.
-     * 
-     * @return self for chaining
-     */
-    public MacroCANSparkMax readToMotor() {
-
-        // if the writer does not exist, attempt to create it
-        if (scanner.equals(null)) {
-            beginRead(); 
+        if (ReadTimer.get() > lastReadTimer) {
+            if (scanner.hasNext()) {
+                driveController.setTarget(scanner.nextDouble());
+                lastReadTimer = scanner.nextDouble();
+            }
         }
 
-        // Do nothing until time has passed the indicated seconds
-        if (readTimer.get() > preveousReadTime) {
-            // Time is stored before position, keep this in mind!
-            preveousReadTime = scanner.nextDouble();
-
-            // Grab position, and set target
-            pidDriver.setTarget(scanner.nextDouble());
-        }
-
-        // Drive motor, regardless of frame status
-        pidDriver.setInput(motor.getEncoder().getPosition()); // Tell the PID controller whats up
-        motor.set(pidDriver.calculate(1, -1)); // Set the motor
-        
-        return this;
+        motor.set(driveController.calculate(1, -1));
     }
 
     /**
-     * Closes file scanner, and resets read timer
      * 
-     * @return self for chaining
      */
-    public MacroCANSparkMax endRead() {
+    public void endRead() {
         scanner.close();
 
-        readTimer.stop();
-        readTimer.reset();
-
-        return this;
+        ReadTimer.stop();
+        ReadTimer.reset();
     }
-
 }
