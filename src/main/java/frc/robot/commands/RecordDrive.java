@@ -28,9 +28,7 @@ public class RecordDrive extends AutoCommandBase {
       m_ExampleSubsysten.macroTestMotor.beginRecord();
     } catch (IOException e) {
       e.printStackTrace();
-    }
-
-    
+    } 
   }
 
   // Called every time the scheduler runs while the command is scheduled.

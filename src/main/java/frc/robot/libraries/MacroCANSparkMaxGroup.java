@@ -17,9 +17,10 @@ import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 
 public class MacroCANSparkMaxGroup {
 
+    final static double defaultKP = 0.03, defaultKI = 0, defaultKD = 0;
+
     private final ShuffleboardTab kShuffleboardTab;
     private GenericEntry[] kPositionArr;
-
 
     /**
      * The path in which the macro item will store and read macro files
@@ -66,32 +67,38 @@ public class MacroCANSparkMaxGroup {
      * Creates an instance of a class extending the function of any number of
      * {@link com.revrobotics.CANSparkMax} to allow for positional macro use.
      * 
-     * @param Motor CANSparkMax to modify
-     * @param Id identifier for file system
+     * @param MotorArr CANSparkMax instances to add to macro group
+     * @param Name for the written/read file
+     * 
+     * @apiNote MacroCANSparkMaxGroup with an equal Name value will overwrite
+     * eachother during read/write operations. Avoid creating instances with
+     * equal name values.
      * 
      * @throws IOException when file location is innaccessable.
+     * 
+     * TODO * Test multiple CANSparkMax items in macro, and test 
+     * TODO * drive accuracy for tank and swerve.
      */
-    public MacroCANSparkMaxGroup(String Id, CANSparkMax... Motor) throws IOException {
-        canSparkMaxArr = Motor;
+    public MacroCANSparkMaxGroup(String Name, CANSparkMax... MotorArr) throws IOException {
+        canSparkMaxArr = MotorArr;
 
-        name = Id;
+        name = Name;
 
         mapFile = new File( dataPath + "\\" + name + ".txt");
 
         // Initalize PIDController for each motor
-        driveControllerArr = new PIDController[Motor.length];
+        driveControllerArr = new PIDController[MotorArr.length];
 
-        for (int i = 0; i < Motor.length; i++) {
-            // Apply default PID values
-            driveControllerArr[i] = new PIDController(0.03, 0, 0, 0);
+        for (int i = 0; i < MotorArr.length; i++) {
+            driveControllerArr[i] = new PIDController(defaultKP, defaultKI, defaultKD, 0);
         }
 
         // Setup shuffleboard catagories
         kShuffleboardTab = Shuffleboard.getTab("MacroGroup" + name);
 
-        kPositionArr = new GenericEntry[Motor.length];
+        kPositionArr = new GenericEntry[MotorArr.length];
         // Add entries to chuffleboard for each motor
-        for (int i = 0; i < Motor.length; i++) {
+        for (int i = 0; i < MotorArr.length; i++) {
             kPositionArr[i] = kShuffleboardTab.addPersistent("Position " + i, 0).getEntry();  
         }
     }
@@ -117,7 +124,9 @@ public class MacroCANSparkMaxGroup {
 
     /**
      * Starts the record timer and institates the 
-     * writer, and clears the file at the defined path.
+     * writer, and clears the file at the defined path. Note 
+     * that this function can be ran in a seperate section of 
+     * code than what is driving the motor.
      * 
      * @apiNote {@link CANSparkMax} {@link RelativeEncoder} position
      * is not reset when recording begins, to allow the user to do this
@@ -149,7 +158,8 @@ public class MacroCANSparkMaxGroup {
 
     /**
      * Record a single frame -- write the time, and motor position,
-     * to the macro file
+     * to the macro file. Note that this function can be ran in a 
+     * seperate section of code than what is driving the motor.
      * 
      * @apiNote Lines are written in the format;
      * {@code String toWrite = RecordTimer.get() + "," + encoder.getPosition() + "\n";}
@@ -174,7 +184,9 @@ public class MacroCANSparkMaxGroup {
     }
 
     /**
-     * Closes the file writer, and resets the timer.
+     * Closes the file writer, and resets the timer. Note 
+     * that this function can be ran in a seperate section of 
+     * code than what is driving the motor.
      * 
      * @throws IOException to allow user to handle how the macro
      * process should be handled if this error occurs
