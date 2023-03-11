@@ -8,10 +8,18 @@ import java.io.PrintWriter;
 import java.util.Scanner;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
+
+import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 
-public class MacroCANSparkMax {
+public class MacroCANSparkMaxGroup {
+
+    private final ShuffleboardTab kShuffleboardTab;
+    private GenericEntry[] kPositionArr;
+
 
     /**
      * The path in which the macro item will store and read macro files
@@ -36,7 +44,7 @@ public class MacroCANSparkMax {
     /**
      * CANSparkMax defined by constructor. This is final.
      */
-    public final CANSparkMax canSparkMax;
+    public final CANSparkMax[] canSparkMaxArr;
 
     final Timer RecordTimer = new Timer(), ReadTimer = new Timer();
 
@@ -52,10 +60,10 @@ public class MacroCANSparkMax {
      * 
      * @see {@link frc.robot.libraries.PIDController}
      */
-    PIDController driveController = new PIDController(0.1, 0, 0, 0);
+    final PIDController[] driveControllerArr;
 
     /**
-     * Creates an instance of a class extending the function of a 
+     * Creates an instance of a class extending the function of any number of
      * {@link com.revrobotics.CANSparkMax} to allow for positional macro use.
      * 
      * @param Motor CANSparkMax to modify
@@ -63,12 +71,29 @@ public class MacroCANSparkMax {
      * 
      * @throws IOException when file location is innaccessable.
      */
-    public MacroCANSparkMax(CANSparkMax Motor, String Id) throws IOException {
-        canSparkMax = Motor;
+    public MacroCANSparkMaxGroup(String Id, CANSparkMax... Motor) throws IOException {
+        canSparkMaxArr = Motor;
 
         name = Id;
 
         mapFile = new File( dataPath + "\\" + name + ".txt");
+
+        // Initalize PIDController for each motor
+        driveControllerArr = new PIDController[Motor.length];
+
+        for (int i = 0; i < Motor.length; i++) {
+            // Apply default PID values
+            driveControllerArr[i] = new PIDController(0.03, 0, 0, 0);
+        }
+
+        // Setup shuffleboard catagories
+        kShuffleboardTab = Shuffleboard.getTab("MacroGroup" + name);
+
+        kPositionArr = new GenericEntry[Motor.length];
+        // Add entries to chuffleboard for each motor
+        for (int i = 0; i < Motor.length; i++) {
+            kPositionArr[i] = kShuffleboardTab.addPersistent("Position " + i, 0).getEntry();  
+        }
     }
 
     /**
@@ -79,11 +104,13 @@ public class MacroCANSparkMax {
      * 
      * @return this for chaining
      */
-    public MacroCANSparkMax setPID(double kP, double kI, double kD) {
+    public MacroCANSparkMaxGroup setPID(double kP, double kI, double kD) {
 
-        driveController.kP = kP;
-        driveController.kI = kI;
-        driveController.kD = kD;
+        for (PIDController driveController : driveControllerArr) {
+            driveController.kP = kP;
+            driveController.kI = kI;
+            driveController.kD = kD;
+        }
 
         return this;
     }
@@ -105,7 +132,9 @@ public class MacroCANSparkMax {
      */
     public void beginRecord() throws IOException {
 
-        canSparkMax.getEncoder().setPosition(0); // Let the user do this at the right time
+        // for (CANSparkMax canSparkMax : canSparkMaxArr) {
+        //     canSparkMax.getEncoder().setPosition(0); // Let the user do this at the right time   
+        // }
 
         RecordTimer.restart();
         RecordTimer.start();
@@ -133,7 +162,13 @@ public class MacroCANSparkMax {
     public void recordFrame() throws IOException {
 
         // Note this method to write the macros, this same format will be read.
-        String toWrite = RecordTimer.get() + "," + canSparkMax.getEncoder().getPosition() + "\n";
+        String toWrite = "" + RecordTimer.get();
+
+        for (CANSparkMax canSparkMax : canSparkMaxArr) {
+            toWrite += ("," + canSparkMax.getEncoder().getPosition());
+        }
+
+        toWrite += "\n";
 
         writer.append(toWrite);
     }
@@ -190,20 +225,31 @@ public class MacroCANSparkMax {
      */
     public void readFrame() {
 
-        driveController.setInput(canSparkMax.getEncoder().getPosition());
+        for (int i = 0; i < canSparkMaxArr.length; i++) {
+            driveControllerArr[i].setInput(canSparkMaxArr[i].getEncoder().getPosition());   
+        }
 
         // Only progress to read the position if the time has passed the
         // time defined within the macro.
         if (ReadTimer.get() > lastReadTimer) {
 
+            for (PIDController driveController : driveControllerArr) {
+                if (scanner.hasNext()) {
+                    // Read the macro value
+                    driveController.setTarget(scanner.nextDouble());
+                }   
+            }
+
             if (scanner.hasNext()) {
-                driveController.setTarget(scanner.nextDouble());
+                //Read the next timer value
                 lastReadTimer = scanner.nextDouble();
             }
         }
 
         // set the motor
-        canSparkMax.set(driveController.calculate(1, -1));
+        for (int i = 0; i < canSparkMaxArr.length; i++) {
+            canSparkMaxArr[i].set(driveControllerArr[i].calculate(1, -1));   
+        }
     }
 
     /**

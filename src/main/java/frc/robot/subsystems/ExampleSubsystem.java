@@ -10,18 +10,18 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.libraries.MacroCANSparkMax;
+import frc.robot.libraries.MacroCANSparkMaxGroup;
 
 public class ExampleSubsystem extends SubsystemBase {
 
   CANSparkMax testMotor = new CANSparkMax(1, MotorType.kBrushless);
 
-  public MacroCANSparkMax macroTestMotor;
+  public MacroCANSparkMaxGroup macroTestMotor;
 
   /** Creates a new ExampleSubsystem. */
   public ExampleSubsystem() {
     try {
-      macroTestMotor = new MacroCANSparkMax(testMotor, "TestMotor");
+      macroTestMotor = new MacroCANSparkMaxGroup("TestMotor", testMotor);
     } catch (IOException e) {
       e.printStackTrace();
     }
